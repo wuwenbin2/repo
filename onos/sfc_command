@@ -1,0 +1,122 @@
+neutron port-chain-delete PC1
+neutron flow-classifier-delete FC1
+neutron port-pair-group-delete PPG1
+neutron port-pair-group-delete PPG2
+neutron port-pair-group-delete PPG3
+neutron port-pair-delete PP1
+neutron port-pair-delete PP2 
+neutron port-pair-delete PP3
+
+
+nova delete SRC
+nova delete SF1
+nova delete SF2
+nova delete SF3
+nova delete DST
+neutron port-delete p1
+neutron port-delete p2
+neutron port-delete p3
+neutron port-delete p4
+neutron port-delete p5
+neutron port-delete p6
+neutron port-delete p7
+neutron port-delete p8
+
+neutron net-delete net1
+
+sudo ovs-vsctl del-br br-int
+sudo ovs-vsctl del-br br-tun
+sudo ovs-vsctl del-br br-ex
+sudo ovs-vsctl del-manager
+sudo ovs-vsctl show
+ovs-ofctl dump-flows -O openflow13 br-int
+
+
+============================
+Restart ONOS and Install features in ONOS
+
+feature:install onos-openflow
+feature:install onos-openflow-base
+
+feature:install onos-app-vtn-onosfw
+feature:install onos-ovsdatabase
+feature:install onos-ovsdb-base
+feature:install onos-drivers-ovsdb
+feature:install onos-ovsdb-provider-host
+externalportname-set -n eth1
+
+Set Manager in controller and compute nodes  and create network
+ovs-vsctl set-manager tcp:10.0.2.21:6640
+----------------------------------------------------------------
+Env setup :
+
+neutron net-create net1
+neutron subnet-create net1 --name subnet1 20.0.0.0/24
+
+neutron port-create --name p1 net1
+neutron port-create --name p2 net1
+neutron port-create --name p3 net1
+neutron port-create --name p4 net1
+neutron port-create --name p5 net1
+neutron port-create --name p6 net1
+
+
+neutron port-update  p2 --no-security-groups
+neutron port-update  p3 --no-security-groups
+neutron port-update  p4 --no-security-groups
+neutron port-update  p5 --no-security-groups
+
+neutron port-update  p2 --port-security-enabled=False
+neutron port-update  p3 --port-security-enabled=False
+neutron port-update  p4 --port-security-enabled=False
+neutron port-update  p5 --port-security-enabled=False
+
+
+nova boot --image cirros_fire_block  --flavor m1.tiny --nic port-id=$(neutron port-list | grep p1 | awk '{print $2}') --availability-zone nova:compute1 SRC
+nova boot --image cirros_fire_block  --flavor m1.tiny --nic port-id=$(neutron port-list | grep p2 | awk '{print $2}') --nic port-id=$(neutron port-list | grep p3 | awk '{print $2}') --availability-zone nova:compute2 SF1
+nova boot --image cirros_fire_block  --flavor m1.tiny --nic port-id=$(neutron port-list | grep p4 | awk '{print $2}') --nic port-id=$(neutron port-list | grep p5 | awk '{print $2}') --availability-zone nova:compute1 SF2
+nova boot --image cirros_fire_block  --flavor m1.tiny --nic port-id=$(neutron port-list | grep p6 | awk '{print $2}') --availability-zone nova:compute2 DST
+
+
+neutron port-pair-create PP1 --ingress p2  --egress p3
+neutron port-pair-create PP2 --ingress p4  --egress p5
+
+neutron port-pair-group-create --port-pair PP1 PPG1
+neutron port-pair-group-create --port-pair PP2 PPG2
+
+
+neutron flow-classifier-create --source-ip-prefix 20.0.0.3/32 --destination-ip-prefix 20.0.0.8/32 --protocol udp --logical-source-port p1 FC1
+
+neutron port-chain-create --port-pair-group PPG1 --port-pair-group PPG2 --flow-classifier FC1 PC1
+
+
+neutron port-create --name p7 net1
+neutron port-create --name p8 net1
+neutron port-update  p7 --no-security-groups
+neutron port-update  p8 --no-security-groups
+neutron port-update  p7 --port-security-enabled=False
+neutron port-update  p8 --port-security-enabled=False
+
+nova boot --image cirros_fire_block  --flavor m1.tiny --nic port-id=$(neutron port-list | grep p7 | awk '{print $2}') --nic port-id=$(neutron port-list | grep p8 | awk '{print $2}') --availability-zone nova:compute2 SF3
+
+neutron port-pair-create PP3 --ingress p7  --egress p8
+neutron port-pair-group-create --port-pair PP3 PPG3
+
+
+{"port_chains":[{"id":"e5cfac70-8bf5-4330-8860-910665c6b61e","tenant_id":"42f67fe7c51948939fe402ead44ef13f","name":"PC1","description":"","port_pair_groups":"[38527982-4cd9-42fd-8e0f-c8d527b90b42, 342b5ee8-6c55-4b03-8f90-84ce4faa904d]","flow_classifiers":"[353a4b57-5084-4068-b067-f7098e0eb7da]"}]}
+
+{"port_chain":{"id":"e5cfac70-8bf5-4330-8860-910665c6b61e","tenant_id":"42f67fe7c51948939fe402ead44ef13f","name":"PC1","description":"","port_pair_groups":["38527982-4cd9-42fd-8e0f-c8d527b90b42", "342b5ee8-6c55-4b03-8f90-84ce4faa904d","7637c4d5-1892-4e5d-9904-ac3c8169458b"],"flow_classifiers":["353a4b57-5084-4068-b067-f7098e0eb7da"]}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,18 @@
+
+feature:install onos-openflow 
+feature:install onos-openflow-base
+feature:install onos-ovsdatabase
+
+feature:install onos-ovsdb-base
+
+feature:install onos-drivers-ovsdb
+
+feature:install onos-ovsdb-provider-host 
+
+feature:install onos-app-vtn-onosfw
+
+
+externalportname-set -n onos_port2
+
+externalportname-set -n eth1
+
